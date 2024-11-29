@@ -1,6 +1,6 @@
 import customtkinter
 import personal_module
-import profile_frameII
+import profile_frame
 import warnings
 from PIL import Image, ImageDraw, ImageTk, ImageOps
 
@@ -59,7 +59,7 @@ class SlideMenu(customtkinter.CTkToplevel):
                               side="bottom",
                               expand=True)
         
-        self.profile_frame = profile_frameII.ProfileFrame(self.top_side, width=180)
+        self.profile_frame = profile_frame.ProfileFrame(self.top_side, width=180, height=500)
         self.profile_frame.pack(side="top",pady=10)
 
 

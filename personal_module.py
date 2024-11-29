@@ -213,8 +213,9 @@ class ScrollFrame(customtkinter.CTkFrame):
                  bg_color="#101010",
                  border_color="#242424",
                  border_width=1,
-                 corner_radius=5):
-
+                 corner_radius=5,
+                 scrollbar = True):
+        
         super().__init__(master=master,
                          height=height,
                          width=width,
@@ -223,36 +224,35 @@ class ScrollFrame(customtkinter.CTkFrame):
                          border_color=border_color,
                          border_width=border_width,
                          corner_radius=corner_radius)
+        
+        self.pack_propagate(False)
 
         self.canvas = customtkinter.CTkCanvas(self,
-                                              bg="#101010", 
+                                              bg="#101010",
                                               highlightthickness=0)
         self.canvas.pack(side="left", expand=True, fill="both", pady=3, padx=2)
         
-        self.scrollbar = customtkinter.CTkScrollbar(self, 
+        if scrollbar:
+            self.scrollbar = customtkinter.CTkScrollbar(self, 
                                                     bg_color="transparent",
                                                     fg_color="transparent",
                                                     height=self.cget("height"),
                                                     button_color="#202020",
                                                     button_hover_color="#222222",
                                                     command=self.canvas.yview)
-        self.scrollbar.pack(side="right", pady=3,padx=1,fill="y", expand=False)
-
-        self.canvas.configure(yscrollcommand=self.scrollbar.set)
-        
-
-
-
+            self.scrollbar.pack(side="right", pady=3,padx=1,fill="y", expand=False)
+            self.canvas.configure(yscrollcommand=self.scrollbar.set)
 
         self.frame = customtkinter.CTkFrame(self.canvas,
-                                            fg_color="#101010")
+                                            fg_color="transparent",bg_color="transparent")
         
         self.frame.bind("<Configure>",self.configure_frame)
         self.canvas.bind("<Configure>", self.configure_canvas)
+        self.canvas.bind("<Enter>", lambda event: self.canvas.bind_all("<MouseWheel>", self.scroll_with_mouse))
+        self.canvas.bind("<Leave>", lambda evevnt: self.canvas.unbind("<MouseWheel>"))
         
         self.frame_id = self.canvas.create_window((0,0), window=self.frame, anchor="nw")
-
-        self.canvas.bind_all("<MouseWheel>", self.scroll_with_mouse)
+    
 
     def configure_frame(self, event):
         self.frame_xy = (self.frame.winfo_reqwidth(), self.frame.winfo_reqheight())

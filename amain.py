@@ -3,7 +3,7 @@ import personal_module
 import login_window
 import database
 import background_card
-import slide_menuII
+import slide_menu
 
 
 class InterfaceConfig:
@@ -146,7 +146,7 @@ class LoginValidation(database.ServerAccess):
 
                         # Load side menu if it doesn't already exist
                         if not hasattr(self, 'side_menu') or self.side_menu is None:
-                                self.side_menu = slide_menuII.SlideMenu(self.master, 
+                                self.side_menu = slide_menu.SlideMenu(self.master, 
                                                                       profile_picture=f"{self.user_profilepic_path}", 
                                                                       user_name=f"{self.user_name}")
                                 

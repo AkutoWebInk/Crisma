@@ -14,7 +14,7 @@ class LoginWindow(customtkinter.CTkToplevel):
         self.attributes("-alpha", 1)
         self.configure(fg_color="#101010")
         self.centeronlaunch()
-        self.no_user_image = "icons/no_user_icon.png"
+        self.no_user_image = "icons/user.png"
 
         self.left_side = personal_module.HoverFrame(self,
                                                     fg_color="#101010",
@@ -71,18 +71,18 @@ class LoginWindow(customtkinter.CTkToplevel):
             self.user_pic = personal_module.loadImageC(f"{pic_path}", size=(155,155))
             self.left_side.profile_image_label.configure(image=self.user_pic)
         else:
-            self.user_pic = personal_module.loadImageC(("icons/no_user_icon.png"), size=(180,180))
+            self.user_pic = personal_module.loadImageC(f"{self.no_user_image}", size=(180,180))
             self.left_side.profile_image_label.configure(image=self.user_pic)
 
     def slide_username(self):
         if self.x_value<10:
-            self.x_value += 1
+            self.x_value += 0.5
             self.username_entry.place_configure(x=self.x_value)
             self.after(1, self.slide_username)
     
     def show_password(self):
         if self.xx_value<10:
-            self.xx_value +=1
+            self.xx_value +=0.5
             self.password_entry.place_configure(x=self.xx_value)
             self.after(1, self.show_password)
 

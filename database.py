@@ -6,10 +6,14 @@ class Database:
           self.connection = sqlite3.connect("Database") 
           self.cursor = self.connection.cursor() 
           #self.createDbTable()
+     
      def createDbTable(self):
                # Creates the main table.
-               self.cursor.execute(f"CREATE TABLE IF NOT EXISTS USER(USERNAME, PASSWORD, PROFILEPIC)")
-               self.cursor.execute(f"CREATE TABLE IF NOT EXISTS ITEM(NAME, REFERENCE, CODE, LINE, CAPACITY, QUANTITY, IMAGE)")
+               #self.cursor.execute(f"CREATE TABLE IF NOT EXISTS USERS(ID INTEGER PRIMARY KEY AUTOINCREMENT,NAME VARCHAR(255),USERNAME VARCHAR(255) UNIQUE,PASSWORD VARCHAR(255),ACCESS_LEVEL INT,PROFILEPIC_PATH VARCHAR(255))")
+              
+               #self.cursor.execute(f"CREATE TABLE IF NOT EXISTS ITEM(NAME, REFERENCE, CODE, LINE, CAPACITY, QUANTITY, IMAGE)")
+               
+               #self.cursor.execute("DROP TABLE users")
                
                self.connection.commit()
                
@@ -40,12 +44,35 @@ class ServerAccess(Database):
           super(). __init__()
 
      def searchDb_username(self, username):
-          self.cursor.execute ("SELECT * FROM USER WHERE USERNAME = ?", (username,))
-          self.returned_user = self.cursor.fetchone()
-          #print(f"{self.returned_user}")
-          return self.returned_user
+          
+          self.cursor.execute ("SELECT * FROM USERS WHERE USERNAME =?", (username,))
+          
+          self.answer = self.cursor.fetchone()
+          
+          if self.answer is not None:
+               try:
+                    self.user_profilePic = self.answer[5]
+                    self.user_Id = self.answer[0]
+                    print(f"\nLocal Database method called: searchDb_profilePic\n"
+                          f"\nLocal Database Response: User Id: {self.user_Id}, User Picture: {self.user_profilePic}\n")
+                    return self.user_profilePic, self.user_Id
+               
+               except Exception as e:
+                    print(e)
      
-     def searchDb(self, user_search = None):
+
+     def searchDb_userPassword(self, id, password):
+          self.cursor.execute ("SELECT * FROM USERS WHERE ID =? AND PASSWORD=?", (id, password))
+          self.answer = self.cursor.fetchone()
+          if self.answer is not None:
+               try:
+                    self.user_password = self.answer[3]
+                    return self.user_password
+               
+               except Exception as e:
+                    print(e)
+
+     def searchDb_item(self, user_search = None):
           if user_search:
                query = "SELECT * FROM ITEM WHERE NAME LIKE ? OR CODE LIKE ? OR LINE LIKE ? OR REFERENCE LIKE ?"
                params = [f"%{user_search}%",f"%{user_search}%",f"%{user_search}%",f"%{user_search}%"]
@@ -61,15 +88,31 @@ class ServerAccess(Database):
           return results
 
      def print_all_users(self):
-          self.cursor.execute("SELECT * FROM USER")
+          self.cursor.execute("SELECT * FROM USERS")
           all_users = self.cursor.fetchall()  # Fetch all user records
 
           # Print each user's information
           for user in all_users:
                print(f"User: {user}")  # This will print each user tuple
 
+     def add_new_user(self, name, username, password, access_level, profile_picture_path):
+          query = "INSERT INTO USERS (NAME,USERNAME,PASSWORD,ACCESS_LEVEL, PROFILEPIC_PATH) VALUES (?,?,?,?,?)"   
+          try:
+               self.cursor.execute(query, (name,username,password,access_level,profile_picture_path))#>------/\
+               self.connection.commit()
+               print(f"\n {name} added to the database.\n")
+          except Exception as e :
+               if "UNIQUE constraint failed" in str(e):
+                    print("\nUser not added: UNIQUE TYPE error.\n")
+
+
+
+
+
+
+
 if __name__ == "__main__":
      Access = ServerAccess()
      Access.print_all_users()
-     Access.cursor.execute("UPDATE USER SET PROFILEPIC = ? WHERE USERNAME = ?", ("user_profile_pics/christian_pfp.png", "Christian"))
+     Access.searchDb_userPassword(1, "Christian123")
      Access.connection.commit()

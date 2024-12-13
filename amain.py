@@ -4,7 +4,7 @@ import login_window
 import database
 import background_card
 import slide_menu
-
+import requests
 
 class InterfaceConfig:
         def __init__(self, master, server):
@@ -55,8 +55,9 @@ class UserInterface(InterfaceConfig):
         def catch_user_search(self,event):
 
                 self.user_search = self.search_widget.get()
-                self.request_search = self.server.searchDb(user_search = f"{self.user_search}")
+                self.request_search = self.server.searchDb_item(user_search = f"{self.user_search}")
                 self.load_items_list(self.request_search)
+                print(self.items_returned_by_search)
                 
         def load_items_list(self,items):
                 self.scrollable_frame.configure_frame(event=None)
@@ -73,6 +74,13 @@ class UserInterface(InterfaceConfig):
                                                                      hover_color="#202020",
                                                                      border_color= "#181818")
                         self.item_frame.pack(pady=1,padx=1,fill="both",expand=True)
+                        self.item_name = customtkinter.CTkLabel(self.item_frame,
+                                                                height=20,
+                                                                bg_color="transparent",
+                                                                fg_color="transparent",
+                                                                text="Item"
+                                                                )
+                        self.item_name.pack(side="left", padx=1, pady=1)
 
                         self.items_returned_by_search.append(self.item_frame)
                 self.scrollable_frame.canvas.yview_moveto(0)
@@ -81,7 +89,7 @@ class UserInterface(InterfaceConfig):
                 self.destroy_current_background()
                 self.scrollable_frame = personal_module.ScrollFrame(self.background_frame,border_color="#181818")
                 self.scrollable_frame.pack(pady=5, padx=1,fill="both", expand=True)
-                self.load_items_list(self.server.searchDb())
+                self.load_items_list(self.server.searchDb_item())
                 self.current_background = self.scrollable_frame
         
         def static_background(self):
@@ -123,51 +131,65 @@ class UserInterface(InterfaceConfig):
                 self.context_menu = personal_module.ContextMenu(None)
 
 class LoginValidation(database.ServerAccess):
-        def __init__(self,master):
-                self.master=master
+        def __init__(self, master):
+
+                self.master = master
                 
                 super(). __init__()
-
+                
+                #raise Login Window
                 self.login_window = login_window.LoginWindow(self.master)
-                self.login_window.bind("<KeyRelease>", self.request_user_info)
-                self.side_menu=None
+                self.login_window.username_entry.bind("<KeyRelease>", self.localDb_requestInfo)
+                self.login_window.password_entry.bind("<KeyRelease>", self.localDb_requestPassword)
+                self.side_menu = None
 
-        def request_user_info(self, event):
-                self.user = self.login_window.catch_username()
-                self.returned_user_info = database.ServerAccess.searchDb_username(self, username=f"{self.user}")
-
-                if self.returned_user_info:
-                        self.user_name = self.returned_user_info[0]
-                        self.user_password = self.returned_user_info[1]
-                        self.user_profilepic_path = self.returned_user_info[2]
-
-                        # Update profile picture in the login window
-                        self.login_window.update_user_profilepic(self.user_profilepic_path)
-
-                        # Load side menu if it doesn't already exist
-                        if not hasattr(self, 'side_menu') or self.side_menu is None:
-                                self.side_menu = slide_menu.SlideMenu(self.master, 
-                                                                      profile_picture=f"{self.user_profilepic_path}", 
-                                                                      user_name=f"{self.user_name}")
-                                
-
+        def localDb_requestInfo(self, event):
+                #catches the username from the login-window-entry
+                self.attempt_user = self.login_window.catch_username()
+                #passes the user written inside the entry /\ as a paramether to a function inside the database that searchs for a match:
+                self.user_info = database.ServerAccess.searchDb_username(self, username=f"{self.attempt_user}") #returns user id and pfp only
+                # Update profile picture in the login window
+                if self.user_info is not None:
+                        self._profilePic, self.userId = self.user_info
+                        self.login_window.update_user_profilepic(self.user_profilePic)
+                        self.login_window.slide_password()
+                        return self.userId     
                 else:
-                        print("User not found.")
-                        # Update profile picture to default in the login window
+                        # Update profile picture to default inside the login window
                         self.login_window.update_user_profilepic()
+                        self.login_window.unslide_password()
+                        
+                
+        def localDb_requestPassword(self, event):
+        # Catch the entered password
+                self.attempt_password = self.login_window.catch_password()
 
-                        # Destroy the side menu if it exists
-                        if hasattr(self, 'side_menu') and self.side_menu is not None:
-                                self.side_menu.destroy()
-                                self.side_menu = None
+                # Check the password in the database using the already set userId
+                self.found_password = self.searchDb_userPassword(id=self.userId, password=self.attempt_password)
 
-        
-        def validate_password(self, event):
-                self.password = self.login_window.catch_password()
-                print(f"{self.password}")
-                if self.user_password == self.password:
-                        self.user = "Validated"
-                        return self.user
+                if self.found_password is not None:
+                        print(f"\nPassword matched with local Database: {self.found_password}"
+                               "\nCALLING API for 2-step validation (server Database):")
+                        
+                        self.API_searchById(user_id=self.userId, user_password=self.found_password)
+                else:
+                        print(f"Incorrect password: {self.attempt_password}")
+
+
+        def API_searchById(self, user_id, user_password):
+                try:
+                        self.params = {f"id":user_id, "password": user_password}
+                        self.api_response = requests.get("http://localhost:8080/api/userById", params=self.params)
+                        
+                        if self.api_response.status_code == 200:
+                                print(f"\nAPI: method called-> findByID()"
+                                      f"\nAPI RESPONSE:\n{self.api_response.json()}")
+                                
+                                return self.api_response
+                
+                except requests.RequestException as exception:
+                                print(f"{exception}")
+
 
 
 

@@ -57,11 +57,6 @@ class LoginWindow(customtkinter.CTkToplevel):
         self.password_entry.place(x=self.xx_value, y = 240)
 
         self.slide_username()
-        self.show_password()
-
-
-
-
 
 
 
@@ -80,11 +75,17 @@ class LoginWindow(customtkinter.CTkToplevel):
             self.username_entry.place_configure(x=self.x_value)
             self.after(1, self.slide_username)
     
-    def show_password(self):
+    def slide_password(self):
         if self.xx_value<10:
             self.xx_value +=0.5
             self.password_entry.place_configure(x=self.xx_value)
-            self.after(1, self.show_password)
+            self.after(1, self.slide_password)
+    
+    def unslide_password(self):
+        if self.xx_value>-210:
+            self.xx_value -=0.5
+            self.password_entry.place_configure(x=self.xx_value)
+            self.after(1, self.unslide_password)
 
     def catch_username(self):
         self.user_username = self.username_entry.get()

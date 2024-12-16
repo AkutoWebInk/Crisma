@@ -477,6 +477,7 @@ class ContextMenu(customtkinter.CTkToplevel):
         self.resizable(False, False)
         self.configure(fg_color="#191919")
         self.attributes("-transparentcolor", "#191919")
+        self.attributes("-topmost", True)
 
         # Bindings
         self.master.bind("<Button-3>", self.pop_up)  

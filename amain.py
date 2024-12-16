@@ -5,12 +5,13 @@ import database
 import background_card
 import slide_menu
 import requests
+import sound 
+
 
 class InterfaceConfig:
-        def __init__(self, master, server):
+        def __init__(self, master, db):
                 self.master = master
-                self.server = server
-                self.master.title("Ákuto Manager")
+                self.db = db
                 self.centeronlaunch()
         
         def centeronlaunch(self):
@@ -20,11 +21,17 @@ class InterfaceConfig:
                 self.heightoffset = (self.height-420)//2
                 self.master.geometry(f"1280x420+{self.widthoffset}+{self.heightoffset}")
                 return
-                
+        
+        def initialize_main_program(self):
+                self.master.mainloop()
+
 class UserInterface(InterfaceConfig):
-        def __init__(self, master, server):
+        def __init__(self, master, db):
                 
-                super().__init__(master, server)
+                self.master = master
+                self.db = db
+
+                InterfaceConfig.__init__(self, master, db)
 
                 self.background_frame=customtkinter.CTkFrame(self.master,fg_color="#101010")
                 self.background_frame.pack(expand=True, fill="both")
@@ -50,12 +57,11 @@ class UserInterface(InterfaceConfig):
                 
                 self.button1.pack(anchor="s", side="left", pady=5,padx=2.5)
                 self.button2.pack(anchor="s", side="left", pady=5,padx=2.5)
-
-        
+ 
         def catch_user_search(self,event):
 
                 self.user_search = self.search_widget.get()
-                self.request_search = self.server.searchDb_item(user_search = f"{self.user_search}")
+                self.request_search = self.db.searchDb_item(user_search = f"{self.user_search}")
                 self.load_items_list(self.request_search)
                 print(self.items_returned_by_search)
                 
@@ -89,7 +95,7 @@ class UserInterface(InterfaceConfig):
                 self.destroy_current_background()
                 self.scrollable_frame = personal_module.ScrollFrame(self.background_frame,border_color="#181818")
                 self.scrollable_frame.pack(pady=5, padx=1,fill="both", expand=True)
-                self.load_items_list(self.server.searchDb_item())
+                self.load_items_list(self.db.searchDb_item())
                 self.current_background = self.scrollable_frame
         
         def static_background(self):
@@ -97,8 +103,7 @@ class UserInterface(InterfaceConfig):
                         for i in range(5):
                         
                                 self.card = background_card.AddNewUser(self.background_frame, 
-                                                                width=200, height=300, 
-                                                                image_path="icons/user.png", image_size=150, 
+                                                                width=200, height=300, image_size=180, 
                                                                 hover_color = "#121212", expand_orientation="card")
                                 self.card.pack(pady=10, padx=10, side="top", anchor="nw")
                                 self.current_background=self.card
@@ -130,7 +135,7 @@ class UserInterface(InterfaceConfig):
         def right_click_context_menu(self,event=None):
                 self.context_menu = personal_module.ContextMenu(None)
 
-class LoginValidation(database.ServerAccess):
+class LoginValidation(database.Access):
         def __init__(self, master):
 
                 self.master = master
@@ -147,19 +152,24 @@ class LoginValidation(database.ServerAccess):
                 #catches the username from the login-window-entry
                 self.attempt_user = self.login_window.catch_username()
                 #passes the user written inside the entry /\ as a paramether to a function inside the database that searchs for a match:
-                self.user_info = database.ServerAccess.searchDb_username(self, username=f"{self.attempt_user}") #returns user id and pfp only
+                self.user_info = database.Access.searchDb_username(self, username=f"{self.attempt_user}") #returns user id and pfp only
                 # Update profile picture in the login window
                 if self.user_info is not None:
-                        self._profilePic, self.userId = self.user_info
-                        self.login_window.update_user_profilepic(self.user_profilePic)
-                        self.login_window.slide_password()
-                        return self.userId     
+                        try:
+                                self._profilePic, self.userId = self.user_info
+                                self.login_window.switch_green(widget=self.login_window.username_entry)
+                                self.login_window.update_user_profilepic(self.user_profilePic)
+                                self.login_window.slide_password()
+                                return self.userId
+                        except:
+                                pass
                 else:
                         # Update profile picture to default inside the login window
+                        if self.login_window.username_entry.cget("fg_color") == "#002400":
+                                self.login_window.return_fg_color(widget=self.login_window.username_entry)
                         self.login_window.update_user_profilepic()
                         self.login_window.unslide_password()
                         
-                
         def localDb_requestPassword(self, event):
         # Catch the entered password
                 self.attempt_password = self.login_window.catch_password()
@@ -168,13 +178,15 @@ class LoginValidation(database.ServerAccess):
                 self.found_password = self.searchDb_userPassword(id=self.userId, password=self.attempt_password)
 
                 if self.found_password is not None:
+                        self.login_window.switch_green(widget=self.login_window.status_bar)
                         print(f"\nPassword matched with local Database: {self.found_password}"
                                "\nCALLING API for 2-step validation (server Database):")
                         
                         self.API_searchById(user_id=self.userId, user_password=self.found_password)
                 else:
+                        if self.login_window.status_bar.cget("fg_color") == "#002400":
+                                self.login_window.return_fg_color(widget=self.login_window.status_bar)
                         print(f"Incorrect password: {self.attempt_password}")
-
 
         def API_searchById(self, user_id, user_password):
                 try:
@@ -183,28 +195,24 @@ class LoginValidation(database.ServerAccess):
                         
                         if self.api_response.status_code == 200:
                                 print(f"\nAPI: method called-> findByID()"
-                                      f"\nAPI RESPONSE:\n{self.api_response.json()}")
+                                      f"\nAPI RESPONSE:\n{self.api_response.text}")
+                                if "Validated" in str(self.api_response.text):
+                                        sound.play("sounds/uiLogin.mp3")
+                                        self.login_window.master.deiconify()
+                                        #self.login_window.master.attributes("-fullscreen",True)
+                                        self.login_window.destroy()
+                                return
+                        
                                 
-                                return self.api_response
-                
-                except requests.RequestException as exception:
-                                print(f"{exception}")
-
-
-
-
+                except requests.RequestException:
+                                self.login_window.switch_green(self.login_window.status_bar, color="red")
+                                print("Api failed to respond.")
 
 
 
 if __name__== "__main__":
-        Local_Server = database.ServerAccess()
-        
-        Customtkinter = customtkinter.CTk(fg_color="#181818")
-        
-        WindowConfig = InterfaceConfig(Customtkinter, Local_Server)
-        
-        Visual = UserInterface(Customtkinter, Local_Server)
-
+        Customtkinter = customtkinter.CTk()
+        Local_DB = database.Access()
         Login = LoginValidation(Customtkinter)
-
-        Customtkinter.mainloop()        
+        Ui = UserInterface(Customtkinter, Local_DB)
+        Customtkinter.mainloop()

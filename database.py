@@ -39,7 +39,7 @@ class User:
           self.access_level=access_level
           self.image=image if image is not None else self.no_image_path
 
-class ServerAccess(Database):
+class Access(Database):
      def __init__(self):
           super(). __init__()
 
@@ -53,7 +53,7 @@ class ServerAccess(Database):
                try:
                     self.user_profilePic = self.answer[5]
                     self.user_Id = self.answer[0]
-                    print(f"\nLocal Database method called: searchDb_profilePic\n"
+                    print(f"\nLocal Database method called: searchDb_username\n"
                           f"\nLocal Database Response: User Id: {self.user_Id}, User Picture: {self.user_profilePic}\n")
                     return self.user_profilePic, self.user_Id
                
@@ -109,10 +109,3 @@ class ServerAccess(Database):
 
 
 
-
-
-if __name__ == "__main__":
-     Access = ServerAccess()
-     Access.print_all_users()
-     Access.searchDb_userPassword(1, "Christian123")
-     Access.connection.commit()

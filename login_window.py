@@ -1,9 +1,11 @@
 import customtkinter
 import personal_module
+import sound
 
 class LoginWindow(customtkinter.CTkToplevel):
     def __init__(self, master):
         self.master = master
+        self.master.withdraw()
         super().__init__()
 
         self.title("Login")
@@ -15,6 +17,7 @@ class LoginWindow(customtkinter.CTkToplevel):
         self.configure(fg_color="#101010")
         self.centeronlaunch()
         self.no_user_image = "icons/user.png"
+        self.original_fg_color = "#121212"
 
         self.left_side = personal_module.HoverFrame(self,
                                                     fg_color="#101010",
@@ -56,9 +59,19 @@ class LoginWindow(customtkinter.CTkToplevel):
         self.username_entry.place(x=self.x_value, y = 200)
         self.password_entry.place(x=self.xx_value, y = 240)
 
+        self.status_bar = customtkinter.CTkFrame(self.left_side, fg_color="#121212",
+                                                 width=140, height=8, corner_radius=100)
+        self.status_bar.place(x=30, y=290)
+
+        self.progress_bar = customtkinter.CTkProgressBar(self.left_side, fg_color="#121212",
+                                                        width=140, height=8, corner_radius=100)
+        #self.progress_bar.place(x=30, y=300)
+
+
+
+
         self.slide_username()
-
-
+        #self.slide_password()
 
 
     def update_user_profilepic(self, pic_path=None):
@@ -105,6 +118,13 @@ class LoginWindow(customtkinter.CTkToplevel):
         self.geometry(f"800x400+{self.widthoffset}+{self.heightoffset}")
         return 
 
+    def switch_green(self, widget, color ="#002400"):
+        sound.play("sounds/pluck.mp3")
+        widget.configure(fg_color=color)
+    
+    def return_fg_color(self, widget):
+        sound.play("sounds\greensound2.mp3")
+        widget.configure(fg_color="#121212")
 
 if __name__=="__main__":
     app = customtkinter.CTk()

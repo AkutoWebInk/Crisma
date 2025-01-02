@@ -1,8 +1,9 @@
 import customtkinter
+import cards.User
 import personal_module
 import login_window
-import database
-import background_card
+import local_data.database.database as database
+from cards import *
 import slide_menu
 import requests
 import sound 
@@ -13,14 +14,17 @@ class InterfaceConfig:
                 self.master = master
                 self.db = db
                 self.centeronlaunch()
-        
+       
         def centeronlaunch(self):
                 self.height = self.master.winfo_screenheight()
                 self.width = self.master.winfo_screenwidth()
-                self.widthoffset = (self.width-1280)//2 
-                self.heightoffset = (self.height-420)//2
-                self.master.geometry(f"1280x420+{self.widthoffset}+{self.heightoffset}")
-                return
+                self.widthoffset = (self.width-1820)//2 
+                self.heightoffset = (self.height-450)//2
+                self.master.geometry(f"1366x450+{self.widthoffset}+{self.heightoffset}")
+                self.master.overrideredirect(False)
+                self.master.attributes("-fullscreen", False)
+
+                return self.height,self.width
         
         def initialize_main_program(self):
                 self.master.mainloop()
@@ -29,112 +33,89 @@ class UserInterface(InterfaceConfig):
         def __init__(self, master, db):
                 
                 self.master = master
-                self.db = db
-
+                self.master.update_idletasks()
+                self.db=db
+                
                 InterfaceConfig.__init__(self, master, db)
-
-                self.background_frame=customtkinter.CTkFrame(self.master,fg_color="#101010")
-                self.background_frame.pack(expand=True, fill="both")
-                
+                # current background on init set to none
                 self.current_background = None
-                self.static_background()
-
-                self.master.bind("<Button-3>", self.right_click_context_menu)
-                self.master.bind("<Control-n>", self.load_add_item_window)
+                # empty list of items currently packed in the background
+                self.card_in_display=None
+                self.packed_cards = []
+                self.loaded_cards = []
                 
-
-
-                self.items_returned_by_search = [] # List of items returned by the searchDb()
+                self.background_frame=customtkinter.CTkFrame(self.master,
+                                                             width=self.master.winfo_width(),
+                                                             height=self.master.winfo_height()-32,
+                                                             fg_color="white",
+                                                             border_color="#101010",
+                                                             border_width=1)
+                self.background_frame.pack(expand=True, fill="both",padx=0)
                 
                 self.search_widget = customtkinter.CTkEntry(self.master, width=120, height=25, fg_color="#101010", border_color="#202020", border_width=1)
-                self.search_widget.pack(side="left", anchor = "s", pady=5, padx=5)
-                self.search_widget.bind("<KeyRelease>", self.catch_user_search) 
-                
-                
-                
-                self.button1 = customtkinter.CTkButton(self.master, width=25, height=25, fg_color="#101010", text="Static", command=self.static_background)
-                self.button2 = customtkinter.CTkButton(self.master, width=25, height=25, fg_color="#101010", text="Scrollable", command=self.initialize_scrollable_frame)
-                
-                self.button1.pack(anchor="s", side="left", pady=5,padx=2.5)
-                self.button2.pack(anchor="s", side="left", pady=5,padx=2.5)
- 
-        def catch_user_search(self,event):
+                self.search_widget.pack(side="bottom", anchor="w", pady=5, padx=5)
+               
+                self.list_of_cards = [
+                        cards.Inventory(master=self.background_frame, 
+                                        local_db=self.db, 
+                                        search_widget=self.search_widget,
+                                        mainFile_path=self),
 
-                self.user_search = self.search_widget.get()
-                self.request_search = self.db.searchDb_item(user_search = f"{self.user_search}")
-                self.load_items_list(self.request_search)
-                print(self.items_returned_by_search)
+                        cards.User(master=self.background_frame,
+                                   local_db=self.db, 
+                                   mainFile_path=self),
+                        
+                        cards.Anaylytics(master=self.background_frame, 
+                                         local_db=self.db, 
+                                         search_widget=self.search_widget,
+                                         mainFile_path=self),
+                        
+                        cards.OriginalCard(master=self.background_frame,
+                                           mainFile_path=self),
+                        ]
                 
-        def load_items_list(self,items):
-                self.scrollable_frame.configure_frame(event=None)
-                for item in self.items_returned_by_search:
-                        item.destroy()         
-                self.items_returned_by_search.clear()
+                self.initialize_cards()
+                self.master.after(200, self.delayed_call)
 
-                for i in items:
-                        self.item_frame = personal_module.HoverFrame(self.scrollable_frame.frame,
-                                                                     height= 32,
-                                                                     width= self.scrollable_frame.cget("width"),
-                                                                     expand_orientation="vertical",
-                                                                     fg_color="#101010",
-                                                                     hover_color="#202020",
-                                                                     border_color= "#181818")
-                        self.item_frame.pack(pady=1,padx=1,fill="both",expand=True)
-                        self.item_name = customtkinter.CTkLabel(self.item_frame,
-                                                                height=20,
-                                                                bg_color="transparent",
-                                                                fg_color="transparent",
-                                                                text="Item"
-                                                                )
-                        self.item_name.pack(side="left", padx=1, pady=1)
+        def terminal_cards(self):
+                print(f"Loaded cards: {self.loaded_cards}")
+                print(f"Packed cards: {self.packed_cards}")
 
-                        self.items_returned_by_search.append(self.item_frame)
-                self.scrollable_frame.canvas.yview_moveto(0)
-                      
-        def initialize_scrollable_frame(self):
-                self.destroy_current_background()
-                self.scrollable_frame = personal_module.ScrollFrame(self.background_frame,border_color="#181818")
-                self.scrollable_frame.pack(pady=5, padx=1,fill="both", expand=True)
-                self.load_items_list(self.db.searchDb_item())
-                self.current_background = self.scrollable_frame
+        def initialize_cards(self):
+                #load cards
+                for card in self.list_of_cards:
+                        self.loaded_cards.append(card)
+                # pack cards
+                for card in self.loaded_cards:
+                        card.pack(side="left", anchor="n", pady=3,padx=3, fill=None, expand=False)
+                        self.packed_cards.append(card)
+
+        def delayed_call(self, event=None):
+                # Don't trigger the resize if the Inventory card is active
+                if self.card_in_display is not None and isinstance(self.card_in_display, cards.Inventory):
+                        return
+                self.master.unbind("<Configure>")
+                self.master.after(10, self.resize_home_screen)
         
-        def static_background(self):
-                        self.destroy_current_background()
-                        for i in range(5):
-                        
-                                self.card = background_card.AddNewUser(self.background_frame, 
-                                                                width=200, height=300, image_size=180, 
-                                                                hover_color = "#121212", expand_orientation="card")
-                                self.card.pack(pady=10, padx=10, side="top", anchor="nw")
-                                self.current_background=self.card
-                                return self.current_background
-                       
-                        '''
-                        Create the cards with images on them and etc, with different sizes for cool effect,
-                        (maybe inside personal_module), then on the main program i create a list of cards that will be on the static background,
-                        and define a fuction as something like:
-                        
-                        list_of_cards = [personal_module.card1, 
-                                                                personal_module.card2, 
-                                                                                        personal_module.card3,...]
-                        def load_cards(self):
-                        
-                                for i in range(list_of_cards):
-                                        i.pack(after="i",pady=5, padx=5) obs: #i side by side with the previous i
-                        '''
-        
-        def destroy_current_background(self):
-                if self.current_background:
-                        self.current_background.destroy()  # Destroy the widget
-                        self.current_background = None  # Clear the reference
+        def resize_home_screen(self):
+                
+                self.master_winfo = self.get_master_winfo()
+                self.background_frame.configure(width=self.master_width, height=self.master_height-32)
+
+                self.master.after(1000,lambda: self.master.bind("<Configure>",self.delayed_call))
+                self.current_background=self.background_frame
                 return self.current_background
-
-        def load_add_item_window(self,event=None):
-                self.add_item_window = personal_module.AddItemWindow(self.master)
         
-        def right_click_context_menu(self,event=None):
-                self.context_menu = personal_module.ContextMenu(None)
-
+        def get_master_winfo(self, event=None):
+                self.master.update_idletasks()
+                self.master_height = self.master.winfo_height()
+                self.master_width = self.master.winfo_width()
+                
+                self.n_rows = self.master_width//200
+                self.n_columns=self.master_height//300
+                
+                return self.master_height, self.master_width, self.n_rows, self.n_columns
+        
 class LoginValidation(database.Access):
         def __init__(self, master):
 
@@ -146,7 +127,7 @@ class LoginValidation(database.Access):
                 self.login_window = login_window.LoginWindow(self.master)
                 self.login_window.username_entry.bind("<KeyRelease>", self.localDb_requestInfo)
                 self.login_window.password_entry.bind("<KeyRelease>", self.localDb_requestPassword)
-                self.side_menu = None
+                self.slide_menu = None
 
         def localDb_requestInfo(self, event):
                 #catches the username from the login-window-entry
@@ -201,18 +182,21 @@ class LoginValidation(database.Access):
                                         self.login_window.master.deiconify()
                                         #self.login_window.master.attributes("-fullscreen",True)
                                         self.login_window.destroy()
-                                return
-                        
+                                        self.slide_menu=self.load_slide_menu(self.master, self.user_profilePic, username=None)
+                                return self.slide_menu
                                 
                 except requests.RequestException:
                                 self.login_window.switch_green(self.login_window.status_bar, color="red")
                                 print("Api failed to respond.")
 
+        def load_slide_menu(self, master, profilepic,username):
+                if not hasattr(self,"slide_menu") or self.slide_menu is None:
+                        self.slide_menu=slide_menu.SlideMenu(master=master,profile_picture=profilepic, user_name=username)
 
 
 if __name__== "__main__":
-        Customtkinter = customtkinter.CTk()
+        Customtkinter = customtkinter.CTk(fg_color="#101010")
         Local_DB = database.Access()
-        Login = LoginValidation(Customtkinter)
+        #Login = LoginValidation(Customtkinter)
         Ui = UserInterface(Customtkinter, Local_DB)
         Customtkinter.mainloop()

@@ -3,61 +3,65 @@ from PIL import Image, ImageDraw, ImageTk, ImageOps
 import warnings
 
 
-def loadImage(path, size=(50,50)):
+def loadImage(path, size=(50, 50)):
     image = Image.open(path)
     image = image.resize(size)
     warnings.filterwarnings("ignore")
     return ImageTk.PhotoImage(image)
 
 def loadImageC(path, size=(50, 50)):
-    image = Image.open(path).resize(size, Image.LANCZOS).convert("RGBA")
-    
-    # Create a fully transparent image as the base
-    transparent_background = Image.new("RGBA", size, (0, 0, 0, 0))
-    
-    # Create a high-resolution mask
-    upscale_factor = 4
-    high_res_size = (size[0] * upscale_factor, size[1] * upscale_factor)
-    high_res_mask = Image.new("L", high_res_size, 0)
-    draw = ImageDraw.Draw(high_res_mask)
-    draw.ellipse((0, 0, high_res_size[0], high_res_size[1]), fill=255)
-    
-    # Downscale the mask to the target size for anti-aliasing
-    mask = high_res_mask.resize(size, Image.LANCZOS)
-    
-    # Create the circular image using the anti-aliased mask
-    circular_image = Image.composite(image, transparent_background, mask)
-    warnings.filterwarnings("ignore")
-    return ImageTk.PhotoImage(circular_image)
+    try:
+        image = Image.open(path).resize(size, Image.LANCZOS).convert("RGBA")
+        # Create a fully transparent image as the base
+        transparent_background = Image.new("RGBA", size, (0, 0, 0, 0))
+        
+        # Create a high-resolution mask
+        upscale_factor = 4
+        high_res_size = (size[0] * upscale_factor, size[1] * upscale_factor)
+        high_res_mask = Image.new("L", high_res_size, 0)
+        draw = ImageDraw.Draw(high_res_mask)
+        draw.ellipse((0, 0, high_res_size[0], high_res_size[1]), fill=255)
+        
+        # Downscale the mask to the target size for anti-aliasing
+        mask = high_res_mask.resize(size, Image.LANCZOS)
+        
+        # Create the circular image using the anti-aliased mask
+        circular_image = Image.composite(image, transparent_background, mask)
+        warnings.filterwarnings("ignore")
+        return ImageTk.PhotoImage(circular_image)
+    except Exception as e:
+        print(f"loadImageC: Error encountered - {e}")
+        return None
 
 def loadImageSQR(path, label_size=(160, 200), corner_radius=15):
-    # Ensure the image is square to fit within the smallest dimension
-    size = min(label_size)  # Take the smaller of the width or height
-    square_size = (size, size)
+    try:
+        # Ensure the image is square to fit within the smallest dimension
+        size = min(label_size)  # Take the smaller of the width or height
+        square_size = (size, size)
 
-    # Open and resize the image to the calculated square size
-    image = Image.open(path).resize(square_size, Image.LANCZOS).convert("RGBA")
+        # Open and resize the image to the calculated square size
+        image = Image.open(path).resize(square_size, Image.LANCZOS).convert("RGBA")
+        # Create a transparent square base for the mask
+        transparent_background = Image.new("RGBA", square_size, (0, 0, 0, 0))
 
-    # Create a transparent square base for the mask
-    transparent_background = Image.new("RGBA", square_size, (0, 0, 0, 0))
+        # Create a rounded rectangular mask
+        upscale_factor = 4  # High resolution for anti-aliasing
+        high_res_size = (square_size[0] * upscale_factor, square_size[1] * upscale_factor)
+        high_res_mask = Image.new("L", high_res_size, 0)
+        draw = ImageDraw.Draw(high_res_mask)
 
-    # Create a rounded rectangular mask
-    upscale_factor = 4  # High resolution for anti-aliasing
-    high_res_size = (square_size[0] * upscale_factor, square_size[1] * upscale_factor)
-    high_res_mask = Image.new("L", high_res_size, 0)
-    draw = ImageDraw.Draw(high_res_mask)
+        # Draw a rounded rectangle
+        draw.rounded_rectangle((0, 0, high_res_size[0], high_res_size[1]), radius=corner_radius * upscale_factor, fill=255)
+        # Downscale the mask for anti-aliasing
+        mask = high_res_mask.resize(square_size, Image.LANCZOS)
 
-    # Draw a rounded rectangle
-    draw.rounded_rectangle((0, 0, high_res_size[0], high_res_size[1]), radius=corner_radius * upscale_factor, fill=255)
-
-    # Downscale the mask for anti-aliasing
-    mask = high_res_mask.resize(square_size, Image.LANCZOS)
-
-    # Apply the rounded mask to the image
-    rounded_image = Image.composite(image, transparent_background, mask)
-    warnings.filterwarnings("ignore")
-    return ImageTk.PhotoImage(rounded_image)
-
+        # Apply the rounded mask to the image
+        rounded_image = Image.composite(image, transparent_background, mask)
+        warnings.filterwarnings("ignore")
+        return ImageTk.PhotoImage(rounded_image)
+    except Exception as e:
+        print(f"loadImageSQR: Error encountered - {e}")
+        return None
 
 class HoverFrame(customtkinter.CTkFrame):
     def __init__(self, 
@@ -75,7 +79,7 @@ class HoverFrame(customtkinter.CTkFrame):
                  image_side=None,
                  profile_image=None,
                  profile_image_side=None,
-                 image_size=None,
+                 image_size=160,
                  pimage_size=None):
 
         self.expanded = False
@@ -114,7 +118,7 @@ class HoverFrame(customtkinter.CTkFrame):
                                                         image=self.profile_image,
                                                         bg_color="transparent",
                                                         fg_color="transparent")
-                self.profile_image_label.pack(pady=1,padx=1, side = "bottom")
+                self.profile_image_label.pack(pady=1,padx=1, side="bottom")
                 self.profile_image_label.bind("<Enter>", self.on_hover)
                 self.profile_image_label.bind("<Leave>", self.off_hover)
             else:
@@ -126,34 +130,47 @@ class HoverFrame(customtkinter.CTkFrame):
                                                         image=self.profile_image,
                                                         bg_color="transparent",
                                                         fg_color="transparent")
-                self.profile_image_label.pack(pady=0,padx=0, side = "bottom")
+                self.profile_image_label.pack(pady=0,padx=0, side="bottom")
+                self.profile_image_label.bind("<Enter>", self.on_hover)
+                self.profile_image_label.bind("<Leave>", self.off_hover)
        
-        if self.profile_image_side is not None and self.profile_image_path is not None:
+        if self.profile_image_side  is not None and self.profile_image_path is not None:
             self.profile_image_label.pack_configure(pady=0,padx=0, side=f"{self.profile_image_side}")
         
         if self.image_path is not None:
+            
             if not self.image_size:
                 self.item_image = loadImage(f"{self.image_path}", size=(180,180))
-                self.image_label = customtkinter.CTkLabel(self,width=180,height=180,text=" ",image=self.item_image)
+                self.image_label = customtkinter.CTkLabel(self,
+                                                          width=180,
+                                                          height=180,
+                                                          text=" ",
+                                                          fg_color="transparent",
+                                                          image=self.item_image)
                 self.image_label.pack(pady=5,padx=5)
             
             elif image_size=="total":
                 self.item_image = loadImage(f"{self.image_path}", size=(180,180))
-                self.image_label = customtkinter.CTkLabel(self,text=" ",image=self.item_image)
+                self.image_label = customtkinter.CTkLabel(self,
+                                                          text=" ",
+                                                          image=self.item_image,
+                                                          fg_color="transparent")
                 self.image_label.pack(expand=True, fill="both")
             
             else:
                 self.item_image = loadImage(f"{self.image_path}", size=(int(f"{self.image_size}"),int(f"{self.image_size}")))
-                self.image_label = customtkinter.CTkLabel(self,width=180,height=180,text=" ",image=self.item_image)
+                self.image_label = customtkinter.CTkLabel(self,fg_color="transparent",
+                                                          width=(int(f"{self.image_size}")),
+                                                          height=(int(f"{self.image_size}")),
+                                                          text=" ",
+                                                          image=self.item_image)
                 self.image_label.pack(pady=5,padx=5)
 
             self.image_label.bind("<Enter>", self.on_hover)
             self.image_label.bind("<Leave>", self.off_hover)
             
         if self.image_side is not None and self.image_path is not None:
-            self.image_label.pack_configure(pady=5,padx=5, side=f"{self.image_side}")
-
-        if hover_color is not None:
+            self.image_label.pack_configure(pady=5,padx=5, side=f"{self.image_side}", anchor="center")
             self.bind("<Enter>", self.on_hover)
             self.bind("<Leave>", self.off_hover)
         
@@ -166,24 +183,22 @@ class HoverFrame(customtkinter.CTkFrame):
             elif expand_orientation == "vertical":
                 self.bind("<Button-1>",self.expand_height)
                 self.bind("<Double-1>", self.return_height)
-            
-            elif expand_orientation =="card":
-                self.bind("<Button-1>", self.expand_height)
-                self.bind("<Button-1>", self.expand_width)
-                self.bind("<Double-1>", self.return_width)
-                self.bind("<Double-1>", self.return_height)
-                
 
-    def expand_height(self,event, h=None):
-        if not h:
+
+    def expand_height(self, event, h=None):
+        if not h:#h=height
+            #if height is not specified, expand by 80(standart)
             self.configure(height = self.original_frame_height+80)
         else:
+            #if height is specified, expand using specified eight
             self.configure(height = self.original_frame_height+int(f"{h}"))
 
     def expand_width(self, event, w=None):
-        if not w:
+        if not w: #w=width
+            #if width is not speciifed, expand by 80(standart)
             self.configure(width=self.original_frame_width + 80)
         else:
+            #if width is specified, expand using spicified width
             self.configure(width = self.original_frame_width+int(f"{w}"))
     
     def return_height(self,event):
@@ -622,4 +637,7 @@ class SideMenu(customtkinter.CTkToplevel):
         self.master.update_idletasks()
         self.geometry(f"200x{self.master_height}+{self.side_menu_initial_place - 200}+{self.sided_menu_locked_height+30}")
 
-      
+if __name__=="__main__":
+    Customtkinter = customtkinter.CTk()
+    addnewitem=AddItemWindow(Customtkinter)
+    Customtkinter.mainloop()

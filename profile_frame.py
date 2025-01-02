@@ -8,38 +8,51 @@ class ProfileFrame(customtkinter.CTkFrame):
                  master, 
                  width=200, 
                  height=400,
-                 corner_radius=10,
+                 corner_radius=9,
+                 user_picture=None,
+                 reminders=None,
+                 notifications=None,
+                 fg_color="#101010",
+                 border_color=None,
+                 border_width=0,
                  **kwargs):
         
-        self.master = master
+        self.user_picture=user_picture
+        self.master=master
+        self.reminders=reminders
+        self.notifications=notifications
+        self.border_color=border_color
+        self.border_width=border_width
+        self.fg_color=fg_color
+        
         super().__init__(master,
                          width=width, 
                          height=height,
                          corner_radius=corner_radius,
+                         border_color=border_color,
+                         border_width=border_width,
                          **kwargs)
         
         self.pack_propagate(False)
-        self.configure(fg_color="#181818")
-
+        self.configure(fg_color=f"{self.fg_color}")
         self.userpfp_label = customtkinter.CTkLabel(self, text=" ",
                                                     width=140, height=160, corner_radius=10,
-                                                    fg_color="#202020")
+                                                    fg_color="#181818")
         self.userpfp_label.pack(side="top",pady=10)
         
-        
-        self.userpfp = personal_module.loadImageSQR("user_profile_pics/christian_pfp.png", label_size=(140,160), corner_radius=10)
+        self.userpfp = personal_module.loadImageSQR(f"{self.user_picture}", label_size=(140,160), corner_radius=10)
         self.userpfp_label.configure(image=self.userpfp)
         
         self.scroll_frame = personal_module.ScrollFrame(self, height=288, width=200,corner_radius=5, border_width=10,
-                                                        fg_color="#181818", 
-                                                        bg_color="#181818",
-                                                        border_color="#161616", 
+                                                        fg_color=f"{self.fg_color}", 
+                                                        bg_color=f"{self.fg_color}",
+                                                        border_color=f"{self.fg_color}", 
                                                         scrollbar=False)
         self.scroll_frame.pack(pady=10, padx=2, side="top")
-        self.scroll_frame.canvas.configure(bg="#181818")
-        self.scroll_frame.frame.configure(bg_color="#181818", corner_radius=40)
+        self.scroll_frame.canvas.configure(bg=f"{self.fg_color}")
+        self.scroll_frame.frame.configure(bg_color=f"{self.fg_color}", corner_radius=40)
         
-        self.reminders_test = ["Christian", "Leonardo", "Alex", "Lipe","Marina","Nita","aijrojaroijia", "aiorjioajrio"]
+        self.reminders_test = ["Christian", "Leonardo", "Alex", "Lipe", "Marina", "Nita"]
 
         self.load_reminders(self.reminders_test)
     
@@ -47,8 +60,8 @@ class ProfileFrame(customtkinter.CTkFrame):
         for i, reminder in enumerate(qtt):
             self.reminder = reminders.Sticker(self.scroll_frame.frame, 
                                               height=50, corner_radius=5,
-                                              stickertxt=f"{reminder}", fg_color="#202020")
-            self.reminder.pack(pady=5, padx=10)
+                                              stickertxt=f"{reminder}", fg_color="#181818")
+            self.reminder.pack(pady=2, padx=10)
 
 
 

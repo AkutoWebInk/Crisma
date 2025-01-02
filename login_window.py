@@ -16,7 +16,7 @@ class LoginWindow(customtkinter.CTkToplevel):
         self.attributes("-alpha", 1)
         self.configure(fg_color="#101010")
         self.centeronlaunch()
-        self.no_user_image = "icons/user.png"
+        self.no_user_image = "icons/no_user_icon.png"
         self.original_fg_color = "#121212"
 
         self.left_side = personal_module.HoverFrame(self,
@@ -33,7 +33,7 @@ class LoginWindow(customtkinter.CTkToplevel):
         self.left_side.pack(side="left")
         self.right_side.pack(side="right", expand=True, fill="both")
         
-        self.right_side_image=personal_module.loadImage("user_profile_pics/login_background.jpg", size=(600,600))
+        self.right_side_image=personal_module.loadImage("local_data/user_profile_pics\login_background.jpg", size=(600,600))
 
         self.right_side_label=customtkinter.CTkLabel(self.right_side,
                                                      width=1,height=1,  corner_radius=5,

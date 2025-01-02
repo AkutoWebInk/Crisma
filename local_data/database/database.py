@@ -1,17 +1,18 @@
 import sqlite3
+import os
 
 class Database:
      def __init__(self):
           # Loading/Conecting Databse
-          self.connection = sqlite3.connect("Database") 
-          self.cursor = self.connection.cursor() 
-          #self.createDbTable()
+          db_path = os.path.abspath("local_data/database/Database.db")
+          self.connection = sqlite3.connect(db_path) 
+          self.cursor = self.connection.cursor()
      
      def createDbTable(self):
                # Creates the main table.
-               #self.cursor.execute(f"CREATE TABLE IF NOT EXISTS USERS(ID INTEGER PRIMARY KEY AUTOINCREMENT,NAME VARCHAR(255),USERNAME VARCHAR(255) UNIQUE,PASSWORD VARCHAR(255),ACCESS_LEVEL INT,PROFILEPIC_PATH VARCHAR(255))")
+               self.cursor.execute(f"CREATE TABLE IF NOT EXISTS USERS(ID INTEGER PRIMARY KEY AUTOINCREMENT,NAME VARCHAR(255),USERNAME VARCHAR(255) UNIQUE,PASSWORD VARCHAR(255),ACCESS_LEVEL INT,PROFILEPIC_PATH VARCHAR(255))")
               
-               #self.cursor.execute(f"CREATE TABLE IF NOT EXISTS ITEM(NAME, REFERENCE, CODE, LINE, CAPACITY, QUANTITY, IMAGE)")
+               self.cursor.execute(f"CREATE TABLE IF NOT EXISTS ITEM(NAME, REFERENCE, CODE, LINE, CAPACITY, QUANTITY, IMAGE)")
                
                #self.cursor.execute("DROP TABLE users")
                
@@ -60,7 +61,6 @@ class Access(Database):
                except Exception as e:
                     print(e)
      
-
      def searchDb_userPassword(self, id, password):
           self.cursor.execute ("SELECT * FROM USERS WHERE ID =? AND PASSWORD=?", (id, password))
           self.answer = self.cursor.fetchone()
@@ -82,9 +82,12 @@ class Access(Database):
                params = []
           
           self.cursor.execute(query, params) # Tell the cursor that points to the server to execute query + list of any params filled:
-          results = self.cursor.fetchall()   # Store the results into a variable
+          results = self.cursor.fetchall()   # Store the results into a variable 
           self.connection.commit()           # Send all the previous command to the database
-
+          
+          for item in results:
+               print(item)
+              
           return results
 
      def print_all_users(self):
@@ -106,6 +109,8 @@ class Access(Database):
                     print("\nUser not added: UNIQUE TYPE error.\n")
 
 
-
-
-
+if __name__=="__main__":
+     Acesso = Access()
+     Acesso.searchDb_item(user_search=None)
+     #Acesso.add_new_user(name="Christian Rodrigues", username="Christian", password="Christian123", access_level=3, profile_picture_path="local_data/user_profile_pics/christian_pfp.png")
+     Acesso.print_all_users()
